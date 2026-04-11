@@ -36,6 +36,7 @@ Methodology:
 """
 
 import datetime as dt
+import os
 import io
 import logging
 import math
@@ -657,6 +658,32 @@ def apply_sector_cap(df: pd.DataFrame, max_per_sector: int = 4) -> pd.DataFrame:
 # SPARKLINE
 # ─────────────────────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────────────────────
+# STORED DATA LOADING
+# ─────────────────────────────────────────────────────────────
+
+def load_stored_price_data() -> dict[str, pd.DataFrame]:
+    """Load price history from stored CSV file if available."""
+    # Try multiple possible paths (local dev vs Streamlit Cloud)
+    for price_file in ["data/price_history.csv", "/mount/src/doubler-screener/data/price_history.csv"]:
+        if os.path.exists(price_file):
+            try:
+                df = pd.read_csv(price_file, parse_dates=["Date"])
+                df = df.set_index("Date")
+                price_data = {}
+                for tk in df["ticker"].unique():
+                    tk_df = df[df["ticker"] == tk][["Open","High","Low","Close","Volume"]].copy()
+                    if len(tk_df) > 60:
+                        price_data[tk] = tk_df
+                logger.info(f"Loaded stored data for {len(price_data)} tickers from {price_file}")
+                return price_data
+            except Exception as e:
+                logger.warning(f"Could not load stored data from {price_file}: {e}")
+    logger.info("No stored price data found")
+    return {}
+
+
 def make_sparkline_data(price_data: dict[str, pd.DataFrame], ticker: str, days: int = 60) -> list[float]:
     if ticker not in price_data:
         return []
@@ -727,11 +754,19 @@ def run_full_scan(
     if progress_callback:
         progress_callback(0.05, f"Downloading data for {len(tickers)} stocks…")
 
-    def _dl_progress(pct):
+    # Try loading stored data first — much faster
+    if progress_callback:
+        progress_callback(0.06, "Checking for stored price data…")
+    stored = load_stored_price_data()
+    if len(stored) > 100:
+        price_data = stored
         if progress_callback:
-            progress_callback(0.05 + pct * 0.55, f"Downloading… {int(pct*100)}%")
-
-    price_data = _safe_download(tickers, period="24mo", progress_callback=_dl_progress)
+            progress_callback(0.60, f"Loaded stored data for {len(price_data)} stocks")
+    else:
+        def _dl_progress(pct):
+            if progress_callback:
+                progress_callback(0.05 + pct * 0.55, f"Downloading… {int(pct*100)}%")
+        price_data = _safe_download(tickers, period="24mo", progress_callback=_dl_progress)
 
     if "SPY" not in price_data:
         logger.error("SPY data missing — cannot compute relative strength")
