@@ -45,7 +45,7 @@ st.markdown("""<div style="text-align:center;padding:1.5rem 0 .5rem;"><h1 style=
 
 with st.sidebar:
     st.markdown("### ⚙️ Controls")
-    if st.button("🔄 Scan Market Now", use_container_width=True, type="primary"):
+    if st.button("🔄 Scan Market Now", width="stretch", type="primary"):
         st.cache_data.clear()
         st.rerun()
     st.markdown("---")
@@ -138,7 +138,7 @@ with tab1:
                     if spark:
                         fig_spark = go.Figure(go.Scatter(y=spark, mode="lines", line=dict(color="#3b82f6", width=2), fill="tozeroy", fillcolor="rgba(59,130,246,0.08)"))
                         fig_spark.update_layout(height=55, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis=dict(visible=False), yaxis=dict(visible=False), showlegend=False)
-                        st.plotly_chart(fig_spark, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig_spark, width="stretch", config={"displayModeBar": False})
                 st.markdown("<hr style='border-color:#1e2d3d;margin:4px 0;'>", unsafe_allow_html=True)
 
 with tab2:
@@ -158,7 +158,7 @@ with tab2:
             fig.add_trace(go.Scatter(x=df.index, y=close.rolling(150).mean(), name="150 SMA", line=dict(color="#a855f7", width=1.5, dash="dot")))
             fig.add_trace(go.Scatter(x=df.index, y=close.rolling(200).mean(), name="200 SMA", line=dict(color="#f59e0b", width=1.5, dash="dot")))
             fig.update_layout(title=dict(text=f"{selected} — Candlestick + SMA Overlays", font=dict(size=18, color="#e2e8f0")), height=550, paper_bgcolor="#0a0e17", plot_bgcolor="#111827", font=dict(color="#94a3b8", family="DM Sans"), xaxis=dict(rangeslider_visible=False, gridcolor="#1e2d3d"), yaxis=dict(gridcolor="#1e2d3d", title="Price ($)"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), xaxis_rangeselector=dict(buttons=[dict(count=1,label="1M",step="month",stepmode="backward"),dict(count=3,label="3M",step="month",stepmode="backward"),dict(count=6,label="6M",step="month",stepmode="backward"),dict(step="all",label="ALL")], font=dict(color="#e2e8f0")))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             row = None
             if "ticker" in qualified.columns:
                 match = qualified[qualified["ticker"] == selected]
@@ -228,7 +228,7 @@ with tab3:
                     if exits.get("sma50_stop"):
                         fig_exit.add_hline(y=exits["sma50_stop"], line_dash="dot", line_color="#3b82f6", annotation_text="50 SMA")
                     fig_exit.update_layout(title=f"{selected_exit} — Price vs Stop Levels (60d)", height=400, paper_bgcolor="#0a0e17", plot_bgcolor="#111827", font=dict(color="#94a3b8"), xaxis=dict(gridcolor="#1e2d3d"), yaxis=dict(gridcolor="#1e2d3d", title="Price ($)"))
-                    st.plotly_chart(fig_exit, use_container_width=True)
+                    st.plotly_chart(fig_exit, width="stretch")
 
 with tab4:
     st.markdown("### 🔬 Walk-Forward Backtest")
@@ -242,7 +242,7 @@ with tab4:
         bt_top_n = st.slider("Top N Picks", 5, 30, 20, 5, key="bt_top_n")
     with bc4:
         bt_min_score = st.slider("Min Score", 0.0, 10.0, 5.0, 0.5, key="bt_min_score")
-    if st.button("▶️ Run Backtest", use_container_width=True, key="bt_run"):
+    if st.button("▶️ Run Backtest", width="stretch", key="bt_run"):
         bt_progress = st.progress(0)
         bt_status = st.empty()
         def _bt_progress(pct, msg=""):
@@ -275,10 +275,10 @@ with tab4:
                 colors = ["#22c55e" if r > 0 else "#ef4444" for r in picks_sorted["forward_return"]]
                 fig_bt = go.Figure(go.Bar(y=picks_sorted["ticker"], x=picks_sorted["forward_return"]*100, orientation="h", marker_color=colors, text=[f"{r*100:+.1f}%" for r in picks_sorted["forward_return"]], textposition="outside"))
                 fig_bt.update_layout(title=f"Forward {bt_hold}-Month Returns by Pick", height=max(400, len(picks_sorted)*28), paper_bgcolor="#0a0e17", plot_bgcolor="#111827", font=dict(color="#94a3b8"), xaxis=dict(title="Return (%)", gridcolor="#1e2d3d", zeroline=True, zerolinecolor="#94a3b8"), yaxis=dict(gridcolor="#1e2d3d"))
-                st.plotly_chart(fig_bt, use_container_width=True)
+                st.plotly_chart(fig_bt, width="stretch")
                 display_picks = picks_sorted[["ticker","composite_score","entry_price","exit_price","forward_return"]].copy()
                 display_picks.columns = ["Ticker","Score","Entry $","Exit $","Return"]
-                st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), use_container_width=True)
+                st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), width="stretch")
 
 with tab5:
     display_cols = ["ticker","composite_score","price","pct_from_high","trend_decile","rs_avg_decile","vol_decile","quality_decile","ensemble_consensus","sma_stack_aligned","above_200sma","overextended","sector","earnings_within_30d","ret_3m","ret_6m","ret_12m","vol_ratio","atr_pct","max_dd_60d"]
@@ -295,8 +295,8 @@ with tab5:
     if "ret_12m" in available_cols: format_dict["ret_12m"] = "{:+.1%}"
     if "vol_ratio" in available_cols: format_dict["vol_ratio"] = "{:.2f}"
     if "atr_pct" in available_cols: format_dict["atr_pct"] = "{:.3%}"
-    st.dataframe(export_df.style.format(format_dict), use_container_width=True, height=600)
+    st.dataframe(export_df.style.format(format_dict), width="stretch", height=600)
     csv_buf = io.BytesIO()
     export_df.to_csv(csv_buf, index=False)
     csv_buf.seek(0)
-    st.download_button(label="⬇️ Download Full Results (CSV)", data=csv_buf.getvalue(), file_name=f"doubler_screener_v2_{dt.datetime.now():%Y%m%d}.csv", mime="text/csv", use_container_width=True)
+    st.download_button(label="⬇️ Download Full Results (CSV)", data=csv_buf.getvalue(), file_name=f"doubler_screener_v2_{dt.datetime.now():%Y%m%d}.csv", mime="text/csv", width="stretch")

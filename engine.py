@@ -567,7 +567,6 @@ def calculate_composite_score(
     ).round(2)
 
     df.loc[df["sma_stack_aligned"], "composite_score"] += 0.5
-    logger.warning(f"Before filters: {len(df[df.composite_score > 0])} scores>0, above_200sma_true={df.above_200sma.sum()}")
     df.loc[~df["above_200sma"], "composite_score"] = 0.0
     if "overextended" in df.columns:
         df.loc[df["overextended"], "composite_score"] = 0.0
@@ -790,7 +789,7 @@ def run_full_scan(
             progress_callback(0.82, "Fetching earnings & float data for top candidates…")
 
         pre_scored = calculate_composite_score(metrics_df.copy(), regime_info["score_multiplier"])
-        top_candidates = pre_scored[pre_scored["composite_score"] > 0].head(100)
+        top_candidates = pre_scored[pre_scored["composite_score"] > 0].head(30)
 
         if "ticker" in top_candidates.columns:
             candidate_tickers = top_candidates["ticker"].tolist()
