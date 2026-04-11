@@ -58,7 +58,7 @@ with st.sidebar:
     st.markdown("---")
     st.caption(f"Last scan cached for 24h · {dt.datetime.now():%Y-%m-%d %H:%M}")
 
-@st.cache_data(ttl=86400, show_spinner=False)
+@st.cache_data(ttl=86400  # v2.1, show_spinner=False)
 def cached_scan():
     progress_bar = st.progress(0)
     status_text = st.empty()
