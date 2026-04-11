@@ -69,7 +69,14 @@ def cached_scan():
     scored, price_data, regime_info = run_full_scan(progress_callback=_progress)
     progress_bar.empty()
     status_text.empty()
-    return scored, {tk: df.to_dict() for tk, df in price_data.items()}, regime_info
+    # Only cache price data for scored stocks to save memory
+    scored_tickers = set()
+    if not scored.empty:
+        if "ticker" in scored.columns:
+            scored_tickers = set(scored["ticker"].tolist())
+        scored_tickers.add("SPY")
+    filtered_price = {tk: df.to_dict() for tk, df in price_data.items() if tk in scored_tickers or len(scored_tickers) == 0}
+    return scored, filtered_price, regime_info
 
 with st.spinner("Running full S&P 1500 scan…"):
     scored_df, price_data_dict, regime_info = cached_scan()
