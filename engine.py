@@ -925,12 +925,26 @@ def run_backtest(
 
     scan_data = {}
     for tk, df in price_data.items():
+        # Ensure index is datetime for comparison
+        if not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
         trimmed = df[df.index <= scan_dt]
         if len(trimmed) > 60:
             scan_data[tk] = trimmed
 
     if "SPY" not in scan_data:
-        return {"error": "Insufficient SPY data before scan date"}
+        # Find earliest date in stored data to give helpful error
+        earliest = None
+        for tk, df in price_data.items():
+            if not isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.to_datetime(df.index)
+            if earliest is None or df.index.min() < earliest:
+                earliest = df.index.min()
+        earliest_str = earliest.strftime("%Y-%m-%d") if earliest else "unknown"
+        return {"error": f"Not enough historical data for {scan_date}. Your stored data starts from {earliest_str}. Pick a scan date at least 3 months after that."}
+
+    if len(scan_data) < 20:
+        return {"error": f"Only {len(scan_data)} stocks have enough data before {scan_date}. Pick a more recent scan date."}
 
     regime_info = detect_market_regime(scan_data["SPY"])
 
@@ -996,6 +1010,8 @@ def run_backtest(
     for tk in pick_tickers:
         if tk in price_data:
             full_df = price_data[tk]
+            if not isinstance(full_df.index, pd.DatetimeIndex):
+                full_df.index = pd.to_datetime(full_df.index)
             entry_slice = full_df[full_df.index <= scan_dt]
             exit_slice = full_df[full_df.index <= end_dt]
             if not entry_slice.empty and not exit_slice.empty:
@@ -1010,6 +1026,8 @@ def run_backtest(
                 }
 
     spy_full = price_data["SPY"]
+    if not isinstance(spy_full.index, pd.DatetimeIndex):
+        spy_full.index = pd.to_datetime(spy_full.index)
     spy_entry_slice = spy_full[spy_full.index <= scan_dt]
     spy_exit_slice = spy_full[spy_full.index <= end_dt]
     if not spy_entry_slice.empty and not spy_exit_slice.empty:
