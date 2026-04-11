@@ -497,6 +497,7 @@ def calculate_composite_score(
     ).round(2)
 
     df.loc[df["sma_stack_aligned"], "composite_score"] += 0.5
+    logger.warning(f"Before filters: {len(df[df.composite_score > 0])} scores>0, above_200sma_true={df.above_200sma.sum()}")
     df.loc[~df["above_200sma"], "composite_score"] = 0.0
     if "overextended" in df.columns:
         df.loc[df["overextended"], "composite_score"] = 0.0
