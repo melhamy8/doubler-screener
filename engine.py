@@ -596,7 +596,7 @@ def _ensemble_score(metrics_df: pd.DataFrame, regime_multiplier: float = 1.0) ->
         {"trend": 0.25, "rs": 0.20, "volume": 0.25, "volatility": 0.20, "catalyst": 0.10},
     ]
 
-    top_n = min(75, len(metrics_df) // 5)
+    top_n = min(250, len(metrics_df) // 3)
     top_sets = []
 
     for w in variants:
