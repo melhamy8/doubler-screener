@@ -853,6 +853,7 @@ def run_backtest(
     top_n: int = 20,
     min_score: float = 5.0,
     progress_callback: Callable = None,
+    preloaded_price_data: dict = None,
 ) -> dict:
     scan_dt = pd.Timestamp(scan_date)
     end_dt = scan_dt + pd.DateOffset(months=hold_months)
@@ -861,18 +862,25 @@ def run_backtest(
     data_end = (end_dt + pd.DateOffset(days=5)).strftime("%Y-%m-%d")
 
     if progress_callback:
-        progress_callback(0.0, f"Backtest: fetching universe as of {scan_date}…")
+        progress_callback(0.0, f"Backtest: preparing data as of {scan_date}…")
 
-    tickers = get_sp1500_tickers()
-
-    if progress_callback:
-        progress_callback(0.05, f"Downloading historical data ({data_start} to {data_end})…")
-
-    def _dl_progress(pct):
+    if preloaded_price_data:
+        # Reuse already-downloaded price data — much faster, no extra memory
+        price_data = preloaded_price_data
+        tickers = [t for t in sorted(price_data.keys()) if t != "SPY"]
+        logger.info(f"Backtest reusing {len(tickers)} preloaded tickers")
         if progress_callback:
-            progress_callback(0.05 + pct * 0.55, f"Downloading… {int(pct*100)}%")
+            progress_callback(0.60, f"Using cached data for {len(tickers)} stocks…")
+    else:
+        tickers = get_sp1500_tickers()
+        if progress_callback:
+            progress_callback(0.05, f"Downloading historical data ({data_start} to {data_end})…")
 
-    price_data = _safe_download(tickers, start=data_start, end=data_end, progress_callback=_dl_progress)
+        def _dl_progress(pct):
+            if progress_callback:
+                progress_callback(0.05 + pct * 0.55, f"Downloading… {int(pct*100)}%")
+
+        price_data = _safe_download(tickers, start=data_start, end=data_end, progress_callback=_dl_progress)
 
     if "SPY" not in price_data:
         return {"error": "SPY data missing for backtest period"}
