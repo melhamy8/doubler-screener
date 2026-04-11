@@ -264,9 +264,9 @@ def _compute_indicators(df: pd.DataFrame) -> dict:
     sma200 = _sma(close, 200)
 
     latest_price = float(close.iloc[-1])
-    latest_sma50 = float(sma50.iloc[-1]) if pd.notna(sma50.iloc[-1]) else 0
-    latest_sma150 = float(sma150.iloc[-1]) if pd.notna(sma150.iloc[-1]) else 0
-    latest_sma200 = float(sma200.iloc[-1]) if pd.notna(sma200.iloc[-1]) else 0
+    latest_sma50 = float(sma50.iloc[-1]) if pd.notna(sma50.iloc[-1]) else latest_price
+    latest_sma150 = float(sma150.iloc[-1]) if pd.notna(sma150.iloc[-1]) else latest_price
+    latest_sma200 = float(sma200.iloc[-1]) if pd.notna(sma200.iloc[-1]) else latest_price
 
     one_year = close.iloc[-252:] if len(close) >= 252 else close
     high_52w = float(one_year.max())
@@ -279,7 +279,7 @@ def _compute_indicators(df: pd.DataFrame) -> dict:
     above_200sma = latest_price > latest_sma200 if latest_sma200 > 0 else False
 
     pct_above_200sma = ((latest_price / latest_sma200) - 1) if latest_sma200 > 0 else 0
-    overextended = pct_above_200sma > 1.0
+    overextended = pct_above_200sma > 2.0
 
     def _period_return(n_days):
         if len(close) > n_days:
@@ -699,7 +699,7 @@ def run_full_scan(
             ind["rs_12m"] = ind["ret_12m"] - spy_ret_12m
             rows.append(ind)
         except Exception as e:
-            logger.debug(f"Skipping {tk}: {e}")
+            logger.warning(f"Skipping {tk}: {e}")
 
         if progress_callback and i % 100 == 0:
             progress_callback(0.65 + (i / len(valid_tickers)) * 0.15, f"Analyzing {tk}…")
