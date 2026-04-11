@@ -60,24 +60,61 @@ _SP400_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies"
 _SP600_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_600_companies"
 
 _FALLBACK_TICKERS = [
-    "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "BRK-B",
-    "UNH", "XOM", "JNJ", "JPM", "V", "PG", "MA", "AVGO", "HD", "CVX",
-    "MRK", "ABBV", "LLY", "PEP", "KO", "COST", "ADBE", "WMT", "MCD",
-    "CRM", "CSCO", "ACN", "TMO", "ABT", "DHR", "NFLX", "LIN", "CMCSA",
-    "TXN", "PM", "NEE", "RTX", "ORCL", "HON", "UNP", "LOW", "INTC",
-    "UPS", "QCOM", "BA", "SPGI", "CAT", "AMAT", "DE", "GS", "INTU",
-    "BLK", "MDLZ", "ISRG", "ADP", "SYK", "GILD", "ADI", "BKNG",
-    "VRTX", "MMC", "REGN", "AMT", "LRCX", "ETN", "ZTS", "CI", "NOW",
-    "PLD", "PANW", "SNPS", "MO", "CDNS", "BSX", "EL", "KLAC", "DUK",
-    "CME", "SHW", "CL", "SO", "ITW", "ICE", "MCK", "MPC", "PH",
-    "APD", "NOC", "EOG", "ABNB", "AJG", "GD", "EMR", "SLB", "TDG",
-    "MELI", "SMCI", "DECK", "AXON", "UBER", "CRWD", "FTNT", "DDOG",
-    "MPWR", "FICO", "VST", "CEG", "APP", "PLTR", "TRGP", "HWM",
-    "TTD", "NTRA", "DUOL", "ANET", "WING", "CAVA", "ONON", "ELF",
-    "CELH", "TXRH", "FIX", "WMS", "BOOT", "LNTH", "GSHD", "CVLT",
-    "CSWI", "ROAD", "CRS", "TBBK", "SFM", "IPAR", "KRYS", "CORT",
-    "WDFC", "CALM", "MOD", "SKYW", "ATGE", "ACIW", "IDCC", "SPSC",
-    "EXLS", "TMDX", "CPRX", "VCEL", "UFPT", "PAYO", "HRMY",
+    "AAPL","MSFT","AMZN","NVDA","GOOGL","GOOG","META","TSLA","BRK-B","AVGO",
+    "JPM","LLY","UNH","V","XOM","MA","COST","HD","PG","JNJ",
+    "ABBV","NFLX","BAC","CRM","CVX","MRK","TMUS","AMD","PEP","KO",
+    "LIN","TMO","ACN","ADBE","MCD","CSCO","ABT","WMT","DHR","PM",
+    "NEE","TXN","QCOM","INTU","UNP","AMGN","RTX","ISRG","HON","GE",
+    "LOW","AMAT","CAT","BA","GS","BKNG","ELV","DE","BLK","SPGI",
+    "ADP","MDLZ","SYK","TJX","GILD","ADI","VRTX","MMC","LRCX","PLD",
+    "ETN","PANW","BSX","REGN","CI","KLAC","SNPS","CDNS","CME","SHW",
+    "MO","SO","ICE","CMG","MCK","MPC","DUK","CL","ITW","PH",
+    "APD","NOC","EOG","SLB","EMR","GD","TDG","AJG","ABNB","WMB",
+    "ORLY","ROP","SPG","AZO","MSI","ADSK","MELI","CRWD","FTNT","DDOG",
+    "UBER","AXON","PLTR","DASH","WDAY","TEAM","SNOW","NET","ZS","MNST",
+    "FICO","CEG","VST","APP","TRGP","HWM","ANET","TTD","NTRA","DUOL",
+    "WING","CAVA","ONON","ELF","CELH","TXRH","FIX","WMS","BOOT","LNTH",
+    "SFM","IPAR","KRYS","CORT","WDFC","CALM","MOD","SKYW","ATGE","ACIW",
+    "IDCC","SPSC","EXLS","TMDX","CPRX","VCEL","UFPT","PAYO","HRMY",
+    "SMCI","DECK","NEM","FANG","OXY","DVN","HAL","PSX","VLO","CTRA",
+    "EQT","AR","RRC","MTDR","CHRD","MGY","SM","GPOR","NEXT","TALO",
+    "AAON","ABCL","ACGL","ACHR","ACM","ACVA","ADPT","AEHR","AEM","AFRM",
+    "AGCO","AGI","AGIO","AGYS","AI","AISP","AIT","ALAB","ALKT","ALNY",
+    "ALSN","AMKR","AMP","AMPH","AMR","ANF","ANSS","AOS","APLE","APPF",
+    "APPN","ARES","ARHS","ARKK","AROC","ARRY","ASH","ASTE","ATKR","AUR",
+    "AVO","AVTR","AX","AZEK","AZN","BALL","BBIO","BBY","BDX","BECN",
+    "BG","BHC","BILL","BJ","BRBR","BRO","BURL","BWA","BYRN","CACC",
+    "CADE","CART","CASY","CBOE","CBRE","CCJ","CEIX","CF","CFR","CHDN",
+    "CHE","CHWY","CIB","CLS","CLX","COIN","COHR","COO","COR","CPAY",
+    "CRI","CRL","CRSP","CRUS","CSGP","CTAS","CTLT","CTSH","CTVA","CW",
+    "CYBR","CYTK","DAL","DCI","DFS","DINO","DKS","DOCS","DOV","DOX",
+    "DSGX","DTM","DT","DUOL","DY","EAT","EGAN","EHC","EME","ENPH",
+    "EPAM","EQH","ESI","ESTC","EVR","EW","EWBC","EXAS","EXPD","EXPE",
+    "EXPO","FCNCA","FDS","FHN","FIVE","FLR","FND","FOUR","FOXF","FPH",
+    "FSLR","FTV","GFL","GKOS","GL","GLOB","GLPI","GMS","GNTX","GRAB",
+    "GWW","HAS","HBAN","HCA","HEIA","HEI","HES","HII","HIMS","HLF",
+    "HOLX","HPE","HPQ","HRL","HSIC","HTHT","HXL","IBM","ICL","IEX",
+    "INCY","INGR","INSM","INSP","IOT","IONS","IOSP","IPG","IQV","IR",
+    "IRM","IT","ITCI","JAZZ","JBHT","JBL","JKHY","JNPR","KBR","KD",
+    "KEY","KGS","KMB","KNSL","KNX","KR","KVUE","LAMR","LANC","LECO",
+    "LFUS","LGIH","LHX","LKQ","LMND","LOPE","LPX","LSCC","LUV","LVS",
+    "LW","LYB","LYV","MAA","MAS","MANH","MEDP","MGNI","MKC","MKTX",
+    "MLM","MMSI","MOS","MPWR","MRVL","MSGS","MTCH","MTD","MTSI","MU",
+    "NBIX","NCLH","NDVA","NDSN","NFE","NJR","NKTR","NMIH","NOG","NOW",
+    "NSC","NTAP","NTNX","NUE","NXST","NYT","OC","ODFL","OKE","OLED",
+    "OMC","ON","ONTO","OPEN","ORI","OSIS","OTIS","OVV","PAYC","PCOR",
+    "PCTY","PEN","PFG","PJNG","PKG","PLUG","PODD","POST","POWI","PPC",
+    "PRGO","PSTG","PTC","QTWO","RBRK","RCL","RGEN","RGLD","RH","RHP",
+    "RHI","RLI","RMBS","RNR","ROCK","ROK","ROKU","ROST","RPM","RPRX",
+    "RS","RSG","RUN","RVMD","SAH","SAIA","SAM","SATS","SBAC","SBUX",
+    "SDOG","SEDG","SEER","SGH","SHAK","SLAB","SLM","SNA","SNEX","SSD",
+    "SSNC","SSP","STAG","STLD","STR","STX","SWAV","SWK","SWKS","SYF",
+    "SYY","TDC","TER","TFC","TFX","TGT","THC","TKR","TNET","TOST",
+    "TREX","TRMB","TROW","TRU","TSCO","TSN","TWLO","TYL","UBER","UFPI",
+    "ULTA","UMBF","UNM","UPST","VEEV","VFC","VICI","VKTX","VMC","VRNS",
+    "VRSN","VRSK","VRT","VRTX","WAB","WAL","WBA","WFRD","WH","WHR",
+    "WIX","WKHS","WPC","WRB","WSM","WSO","WST","WTFC","WTS","XEL",
+    "XPO","XYL","YMH","ZBH","ZBRA","ZEN","ZI","ZM","ZWS"
 ]
 
 _SECTOR_CACHE: dict[str, str] = {}
@@ -506,6 +543,8 @@ def calculate_composite_score(
         mask = df["composite_score"] > 0
         df.loc[mask, "composite_score"] = (df.loc[mask, "composite_score"] * regime_multiplier).round(2)
 
+    if df.index.name == "ticker" or "ticker" not in df.columns:
+        df = df.reset_index()
     df = df.sort_values("composite_score", ascending=False).reset_index(drop=True)
     df.index += 1
     df.index.name = "Rank"
