@@ -121,25 +121,57 @@ _SECTOR_CACHE: dict[str, str] = {}
 
 
 def get_sp1500_tickers() -> list[str]:
-    """Fetch S&P 1500 constituent tickers (S&P 500 + 400 + 600)."""
+    """Fetch S&P 1500 constituent tickers from multiple sources."""
     tickers = set()
+
+    # Method 1: Try GitHub-hosted S&P 500 CSV (reliable, no blocking)
+    csv_urls = [
+        ("https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv", "symbol", "S&P 500 CSV"),
+    ]
+    for csv_url, col_name, label in csv_urls:
+        try:
+            import urllib.request
+            req = urllib.request.Request(csv_url, headers={"User-Agent": "Mozilla/5.0"})
+            response = urllib.request.urlopen(req, timeout=15)
+            csv_data = response.read().decode("utf-8")
+            df = pd.read_csv(io.StringIO(csv_data))
+            for col in df.columns:
+                if col.lower().strip() in ["symbol", "ticker", "symbols"]:
+                    syms = df[col].dropna().astype(str).tolist()
+                    syms = [s.strip().replace(".", "-") for s in syms if 0 < len(s.strip()) < 10]
+                    tickers.update(syms)
+                    logger.info(f"  {label}: fetched {len(syms)} tickers")
+                    # Try to get sector info
+                    for sec_col in df.columns:
+                        if "sector" in sec_col.lower():
+                            for _, row in df.iterrows():
+                                sym = str(row[col]).strip().replace(".", "-")
+                                sec = str(row[sec_col]).strip()
+                                if sym and sec and sec != "nan":
+                                    _SECTOR_CACHE[sym] = sec
+                            break
+                    break
+        except Exception as e:
+            logger.warning(f"  Could not fetch {label}: {e}")
+
+    # Method 2: Try Wikipedia with browser-like headers
     for url, label in [
         (_SP500_URL, "S&P 500"),
         (_SP400_URL, "S&P 400"),
         (_SP600_URL, "S&P 600"),
     ]:
         try:
-            tables = pd.read_html(url)
+            import urllib.request
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"})
+            response = urllib.request.urlopen(req, timeout=15)
+            html = response.read().decode("utf-8")
+            tables = pd.read_html(io.StringIO(html))
             for tbl in tables:
                 for col in tbl.columns:
                     col_lower = str(col).lower()
                     if "symbol" in col_lower or "ticker" in col_lower:
                         syms = tbl[col].dropna().astype(str).tolist()
-                        syms = [
-                            s.strip().replace(".", "-")
-                            for s in syms
-                            if len(s.strip()) > 0 and len(s.strip()) < 10
-                        ]
+                        syms = [s.strip().replace(".", "-") for s in syms if 0 < len(s.strip()) < 10]
                         if len(syms) > 20:
                             tickers.update(syms)
                             logger.info(f"  {label}: scraped {len(syms)} tickers")
@@ -155,11 +187,13 @@ def get_sp1500_tickers() -> list[str]:
         except Exception as e:
             logger.warning(f"  Could not scrape {label}: {e}")
 
+    # Method 3: Fallback to hardcoded list
     if len(tickers) < 100:
-        logger.warning("Wikipedia scrape yielded too few tickers — using fallback list")
-        tickers = set(_FALLBACK_TICKERS)
+        logger.warning("Online sources yielded too few tickers — using fallback list")
+        tickers.update(_FALLBACK_TICKERS)
 
     tickers.discard("SPY")
+    logger.info(f"  Total unique tickers: {len(tickers)}")
     return sorted(tickers)
 
 
