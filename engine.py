@@ -252,7 +252,7 @@ def detect_market_regime(spy_df: pd.DataFrame) -> dict:
 # ─────────────────────────────────────────────────────────────
 
 def _sma(series: pd.Series, window: int) -> pd.Series:
-    return series.rolling(window=window, min_periods=window).mean()
+    return series.rolling(window=window, min_periods=max(1, window // 2)).mean()
 
 
 def _compute_indicators(df: pd.DataFrame) -> dict:
@@ -657,7 +657,7 @@ def run_full_scan(
         if progress_callback:
             progress_callback(0.05 + pct * 0.55, f"Downloading… {int(pct*100)}%")
 
-    price_data = _safe_download(tickers, period="15mo", progress_callback=_dl_progress)
+    price_data = _safe_download(tickers, period="24mo", progress_callback=_dl_progress)
 
     if "SPY" not in price_data:
         logger.error("SPY data missing — cannot compute relative strength")
