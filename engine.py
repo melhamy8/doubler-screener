@@ -1006,14 +1006,17 @@ def run_backtest(
     else:
         pick_tickers = picks.index.tolist() if picks.index.name != "Rank" else []
 
+    # Only load price data for picked stocks + SPY to save memory
     forward_returns = {}
+    needed_tickers = set(pick_tickers) | {"SPY"}
     for tk in pick_tickers:
-        if tk in price_data:
-            full_df = price_data[tk]
-            if not isinstance(full_df.index, pd.DatetimeIndex):
-                full_df.index = pd.to_datetime(full_df.index)
-            entry_slice = full_df[full_df.index <= scan_dt]
-            exit_slice = full_df[full_df.index <= end_dt]
+        if tk not in price_data:
+            continue
+        full_df = price_data[tk]
+        if not isinstance(full_df.index, pd.DatetimeIndex):
+            full_df.index = pd.to_datetime(full_df.index)
+        entry_slice = full_df[full_df.index <= scan_dt]
+        exit_slice = full_df[full_df.index <= end_dt]
             if not entry_slice.empty and not exit_slice.empty:
                 entry_price = float(entry_slice["Close"].iloc[-1])
                 exit_price = float(exit_slice["Close"].iloc[-1])
