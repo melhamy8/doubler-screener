@@ -1,0 +1,26 @@
+name: Daily Cache Warmup
+
+on:
+  schedule:
+    - cron: "0 14 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Streamlit app
+        env:
+          APP_URL: ${{ secrets.STREAMLIT_APP_URL }}
+        run: |
+          echo "Waking up Doubler Screener at $(date -u)"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 300 --retry 3 --retry-delay 30 \
+            "${APP_URL:-https://your-app.streamlit.app/}")
+          echo "Response status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "App warmed up successfully"
+          else
+            echo "App returned status $HTTP_STATUS"
+            exit 1
+          fi
