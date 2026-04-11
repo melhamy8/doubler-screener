@@ -1,6 +1,5 @@
 """
 app.py — High-Convexity "Doubler" Stock Screener v2.0
-======================================================
 Run:  streamlit run app.py
 """
 
@@ -279,7 +278,7 @@ with tab4:
                 st.plotly_chart(fig_bt, use_container_width=True)
                 display_picks = picks_sorted[["ticker","composite_score","entry_price","exit_price","forward_return"]].copy()
                 display_picks.columns = ["Ticker","Score","Entry $","Exit $","Return"]
-                st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}).background_gradient(subset=["Return"], cmap="RdYlGn", vmin=-0.5, vmax=1.0), use_container_width=True)
+                st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), use_container_width=True)
 
 with tab5:
     display_cols = ["ticker","composite_score","price","pct_from_high","trend_decile","rs_avg_decile","vol_decile","quality_decile","ensemble_consensus","sma_stack_aligned","above_200sma","overextended","sector","earnings_within_30d","ret_3m","ret_6m","ret_12m","vol_ratio","atr_pct","max_dd_60d"]
@@ -296,9 +295,7 @@ with tab5:
     if "ret_12m" in available_cols: format_dict["ret_12m"] = "{:+.1%}"
     if "vol_ratio" in available_cols: format_dict["vol_ratio"] = "{:.2f}"
     if "atr_pct" in available_cols: format_dict["atr_pct"] = "{:.3%}"
-    styled = export_df.style.format(format_dict)
-    if "composite_score" in available_cols: styled = styled.background_gradient(subset=["composite_score"], cmap="YlGn", vmin=0, vmax=10)
-    st.dataframe(styled, use_container_width=True, height=600)
+    st.dataframe(export_df.style.format(format_dict), use_container_width=True, height=600)
     csv_buf = io.BytesIO()
     export_df.to_csv(csv_buf, index=False)
     csv_buf.seek(0)

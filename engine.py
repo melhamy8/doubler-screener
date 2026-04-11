@@ -101,7 +101,7 @@ def get_sp1500_tickers() -> list[str]:
                         syms = [
                             s.strip().replace(".", "-")
                             for s in syms
-                            if s.strip().isalpha() or "-" in s.strip() or "." in s.strip()
+                            if len(s.strip()) > 0 and len(s.strip()) < 10
                         ]
                         if len(syms) > 20:
                             tickers.update(syms)
