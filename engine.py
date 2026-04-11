@@ -560,6 +560,8 @@ def _ensemble_score(metrics_df: pd.DataFrame, regime_multiplier: float = 1.0) ->
 def apply_sector_cap(df: pd.DataFrame, max_per_sector: int = 4) -> pd.DataFrame:
     if "sector" not in df.columns:
         return df
+    if df["sector"].nunique() <= 1:
+        return df
 
     result = []
     sector_counts = {}
