@@ -834,8 +834,8 @@ def run_full_scan(
     else:
         scored = calculate_composite_score(metrics_df, regime_info["score_multiplier"])
 
-    if sector_cap > 0 and "sector" in scored.columns:
-        scored = apply_sector_cap(scored, max_per_sector=sector_cap)
+    # Sector cap is applied in the UI layer, not here
+    # Full results should contain all qualifying stocks
 
     if progress_callback:
         progress_callback(1.0, "Scan complete!")
