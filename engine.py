@@ -188,9 +188,8 @@ def get_sp1500_tickers() -> list[str]:
             logger.warning(f"  Could not scrape {label}: {e}")
 
     # Method 3: Fallback to hardcoded list
-    if len(tickers) < 100:
-        logger.warning("Online sources yielded too few tickers — using fallback list")
-        tickers.update(_FALLBACK_TICKERS)
+    tickers.update(_FALLBACK_TICKERS)
+    logger.info(f"Merged fallback list")
 
     tickers.discard("SPY")
     logger.info(f"  Total unique tickers: {len(tickers)}")
