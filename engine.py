@@ -684,6 +684,69 @@ def load_stored_price_data() -> dict[str, pd.DataFrame]:
     return {}
 
 
+
+def _compute_indicators_light(df: pd.DataFrame) -> dict:
+    """Compute indicators from Close+Volume only (for backtest memory savings)."""
+    close = df["Close"]
+    volume = df["Volume"] if "Volume" in df.columns else pd.Series([0]*len(df), index=df.index)
+
+    sma50 = _sma(close, 50)
+    sma150 = _sma(close, 150)
+    sma200 = _sma(close, 200)
+
+    latest_price = float(close.iloc[-1])
+    latest_sma50 = float(sma50.iloc[-1]) if pd.notna(sma50.iloc[-1]) else latest_price
+    latest_sma150 = float(sma150.iloc[-1]) if pd.notna(sma150.iloc[-1]) else latest_price
+    latest_sma200 = float(sma200.iloc[-1]) if pd.notna(sma200.iloc[-1]) else latest_price
+
+    one_year = close.iloc[-252:] if len(close) >= 252 else close
+    high_52w = float(one_year.max())
+    pct_from_high = (latest_price / high_52w) if high_52w > 0 else 0
+
+    sma_stack_aligned = (
+        latest_price > latest_sma50 > latest_sma150 > latest_sma200
+    ) if all(v > 0 for v in [latest_sma50, latest_sma150, latest_sma200]) else False
+
+    above_200sma = latest_price > latest_sma200 if latest_sma200 > 0 else False
+    pct_above_200sma = ((latest_price / latest_sma200) - 1) if latest_sma200 > 0 else 0
+    overextended = pct_above_200sma > 2.0
+
+    def _period_return(n_days):
+        if len(close) > n_days:
+            prev = float(close.iloc[-n_days - 1])
+            return (latest_price - prev) / prev if prev > 0 else 0.0
+        return 0.0
+
+    ret_1m = _period_return(21)
+    ret_3m = _period_return(63)
+    ret_6m = _period_return(126)
+    ret_12m = _period_return(252)
+
+    recent_20 = df.iloc[-20:]
+    daily_chg_20 = recent_20["Close"].diff()
+    up_vol = float(recent_20.loc[daily_chg_20 > 0, "Volume"].sum()) if "Volume" in recent_20.columns else 0
+    down_vol = float(recent_20.loc[daily_chg_20 <= 0, "Volume"].sum()) if "Volume" in recent_20.columns else 1
+    vol_ratio = up_vol / down_vol if down_vol > 0 else (10.0 if up_vol > 0 else 1.0)
+
+    obv_slope = 0.0
+    atr = latest_price * 0.02
+    atr_pct = 0.02
+
+    recent_60 = close.iloc[-60:] if len(close) >= 60 else close
+    rolling_max = recent_60.cummax()
+    drawdowns = (recent_60 - rolling_max) / rolling_max
+    max_drawdown_60d = float(drawdowns.min())
+
+    return {
+        "price": latest_price, "sma50": latest_sma50, "sma150": latest_sma150,
+        "sma200": latest_sma200, "high_52w": high_52w, "pct_from_high": pct_from_high,
+        "sma_stack_aligned": sma_stack_aligned, "above_200sma": above_200sma,
+        "overextended": overextended, "pct_above_200sma": round(pct_above_200sma, 4),
+        "ret_1m": ret_1m, "ret_3m": ret_3m, "ret_6m": ret_6m, "ret_12m": ret_12m,
+        "vol_ratio": vol_ratio, "obv_slope": obv_slope,
+        "atr": atr, "atr_pct": atr_pct, "max_dd_60d": max_drawdown_60d,
+    }
+
 def make_sparkline_data(price_data: dict[str, pd.DataFrame], ticker: str, days: int = 60) -> list[float]:
     if ticker not in price_data:
         return []
@@ -900,8 +963,10 @@ def run_backtest(
         progress_callback(0.0, f"Backtest: preparing data as of {scan_date}…")
 
     if preloaded_price_data:
-        # Reuse already-downloaded price data — much faster, no extra memory
+        # Reuse already-downloaded price data — no extra memory needed
+        # Only keep a lightweight reference, don't copy
         price_data = preloaded_price_data
+        logger.info(f"Backtest reusing {len(price_data)} preloaded tickers")
         tickers = [t for t in sorted(price_data.keys()) if t != "SPY"]
         logger.info(f"Backtest reusing {len(tickers)} preloaded tickers")
         if progress_callback:
@@ -966,7 +1031,11 @@ def run_backtest(
 
     for i, tk in enumerate(valid_tickers):
         try:
-            ind = _compute_indicators(scan_data[tk])
+            tk_df = scan_data[tk]
+            if "Open" in tk_df.columns and "High" in tk_df.columns:
+                ind = _compute_indicators(tk_df)
+            else:
+                ind = _compute_indicators_light(tk_df)
             ind["ticker"] = tk
             ind["sector"] = _SECTOR_CACHE.get(tk, "Unknown")
             ind["rs_1m"] = ind["ret_1m"] - spy_ret_1m
@@ -979,6 +1048,11 @@ def run_backtest(
 
         if progress_callback and i % 100 == 0:
             progress_callback(0.62 + (i / max(len(valid_tickers), 1)) * 0.15, f"Analyzing {tk}…")
+
+    # Free scan_data to reclaim memory
+    del scan_data
+    import gc
+    gc.collect()
 
     if not rows:
         return {"error": "No valid stock data for backtest period"}
