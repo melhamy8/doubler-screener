@@ -256,7 +256,7 @@ with tab4:
             bt_progress.progress(min(pct, 1.0))
             if msg: bt_status.markdown(f"<p style='color:#94a3b8;text-align:center;'>{msg}</p>", unsafe_allow_html=True)
         with st.spinner("Running historical backtest…"):
-            bt_results = run_backtest(scan_date=bt_date.strftime("%Y-%m-%d"), hold_months=bt_hold, top_n=bt_top_n, min_score=bt_min_score, progress_callback=_bt_progress, preloaded_price_data=price_data)
+            bt_results = run_backtest(scan_date=bt_date.strftime("%Y-%m-%d"), hold_months=bt_hold, top_n=bt_top_n, min_score=bt_min_score, progress_callback=_bt_progress)
         bt_progress.empty()
         bt_status.empty()
         if "error" in bt_results:

@@ -747,6 +747,37 @@ def _compute_indicators_light(df: pd.DataFrame) -> dict:
         "atr": atr, "atr_pct": atr_pct, "max_dd_60d": max_drawdown_60d,
     }
 
+
+def _load_backtest_data() -> dict[str, pd.DataFrame]:
+    """Load stored price data for backtesting — memory efficient."""
+    import gc
+    for price_file in ["data/price_history.csv", "/mount/src/doubler-screener/data/price_history.csv"]:
+        if os.path.exists(price_file):
+            try:
+                # Read only needed columns
+                df = pd.read_csv(price_file, usecols=["Date","Close","Volume","ticker"], parse_dates=["Date"])
+                df = df.set_index("Date")
+                
+                # Get unique tickers sorted by data length
+                ticker_counts = df["ticker"].value_counts()
+                # Take top 500 tickers by data availability
+                top_tickers = ticker_counts.head(500).index.tolist()
+                df = df[df["ticker"].isin(top_tickers)]
+                
+                price_data = {}
+                for tk in top_tickers:
+                    tk_df = df[df["ticker"] == tk][["Close","Volume"]].copy()
+                    if len(tk_df) > 60:
+                        price_data[tk] = tk_df
+                
+                del df
+                gc.collect()
+                logger.info(f"Loaded backtest data for {len(price_data)} tickers from {price_file}")
+                return price_data
+            except Exception as e:
+                logger.warning(f"Could not load backtest data: {e}")
+    return {}
+
 def make_sparkline_data(price_data: dict[str, pd.DataFrame], ticker: str, days: int = 60) -> list[float]:
     if ticker not in price_data:
         return []
