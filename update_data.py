@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 DATA_DIR = "data"
-PRICE_FILE = os.path.join(DATA_DIR, "price_history.csv")
+TICKERS_DIR = os.path.join(DATA_DIR, "tickers")
 TICKERS_FILE = os.path.join(DATA_DIR, "tickers.csv")
 
 
@@ -115,24 +115,34 @@ def initial_download(tickers: list[str]):
         combined.index.name = "Date"
         combined = combined.reset_index()
         combined["Date"] = pd.to_datetime(combined["Date"]).dt.strftime("%Y-%m-%d")
-        os.makedirs(DATA_DIR, exist_ok=True)
-        combined.to_csv(PRICE_FILE, index=False)
-        logger.info(f"Saved {len(combined)} rows to {PRICE_FILE}")
+        os.makedirs(TICKERS_DIR, exist_ok=True)
+        count = 0
+        for tk in combined["ticker"].unique():
+            tk_df = combined[combined["ticker"] == tk][["Date","Open","High","Low","Close","Volume"]]
+            safe = tk.replace("/", "_")
+            tk_df.to_csv(os.path.join(TICKERS_DIR, f"{safe}.csv"), index=False)
+            count += 1
+        logger.info(f"Saved {count} individual ticker files to {TICKERS_DIR}")
     else:
         logger.error("No data downloaded")
 
 
 def daily_update(tickers: list[str]):
     """Download only the latest 5 days and append new rows."""
-    if not os.path.exists(PRICE_FILE):
+    if not os.path.isdir(TICKERS_DIR):
         logger.info("No existing data — running initial download")
         initial_download(tickers)
         return
 
-    existing = pd.read_csv(PRICE_FILE)
-    existing["Date"] = pd.to_datetime(existing["Date"])
-    last_date = existing["Date"].max()
-    logger.info(f"Last date in file: {last_date.strftime('%Y-%m-%d')}")
+    # Find last date from SPY file
+    spy_file = os.path.join(TICKERS_DIR, "SPY.csv")
+    if os.path.exists(spy_file):
+        spy_df = pd.read_csv(spy_file)
+        spy_df["Date"] = pd.to_datetime(spy_df["Date"])
+        last_date = spy_df["Date"].max()
+    else:
+        last_date = pd.Timestamp.now() - pd.Timedelta(days=7)
+    logger.info(f"Last date in files: {last_date.strftime('%Y-%m-%d')}")
 
     all_tickers = tickers if "SPY" in tickers else ["SPY"] + tickers
     new_data = []
@@ -167,14 +177,23 @@ def daily_update(tickers: list[str]):
         combined = combined.reset_index()
         combined["Date"] = pd.to_datetime(combined["Date"])
 
-        # Only keep rows newer than what we have
         new_rows = combined[combined["Date"] > last_date]
         if not new_rows.empty:
-            new_rows["Date"] = new_rows["Date"].dt.strftime("%Y-%m-%d")
-            existing["Date"] = existing["Date"].dt.strftime("%Y-%m-%d")
-            updated = pd.concat([existing, new_rows], ignore_index=True)
-            updated.to_csv(PRICE_FILE, index=False)
-            logger.info(f"Appended {len(new_rows)} new rows. Total: {len(updated)}")
+            os.makedirs(TICKERS_DIR, exist_ok=True)
+            updated_count = 0
+            for tk in new_rows["ticker"].unique():
+                tk_new = new_rows[new_rows["ticker"] == tk][["Date","Open","High","Low","Close","Volume"]].copy()
+                tk_new["Date"] = tk_new["Date"].dt.strftime("%Y-%m-%d")
+                safe = tk.replace("/", "_")
+                tk_file = os.path.join(TICKERS_DIR, f"{safe}.csv")
+                if os.path.exists(tk_file):
+                    existing_tk = pd.read_csv(tk_file)
+                    updated_tk = pd.concat([existing_tk, tk_new], ignore_index=True)
+                    updated_tk.to_csv(tk_file, index=False)
+                else:
+                    tk_new.to_csv(tk_file, index=False)
+                updated_count += 1
+            logger.info(f"Updated {updated_count} ticker files with new data")
         else:
             logger.info("No new data to append — already up to date")
     else:
