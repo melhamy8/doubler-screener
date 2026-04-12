@@ -1017,16 +1017,16 @@ def run_backtest(
             full_df.index = pd.to_datetime(full_df.index)
         entry_slice = full_df[full_df.index <= scan_dt]
         exit_slice = full_df[full_df.index <= end_dt]
-            if not entry_slice.empty and not exit_slice.empty:
-                entry_price = float(entry_slice["Close"].iloc[-1])
-                exit_price = float(exit_slice["Close"].iloc[-1])
-                fwd_ret = (exit_price - entry_price) / entry_price
-                forward_returns[tk] = {
-                    "entry_price": round(entry_price, 2),
-                    "exit_price": round(exit_price, 2),
-                    "forward_return": round(fwd_ret, 4),
-                    "doubled": fwd_ret >= 1.0,
-                }
+        if not entry_slice.empty and not exit_slice.empty:
+            entry_price = float(entry_slice["Close"].iloc[-1])
+            exit_price = float(exit_slice["Close"].iloc[-1])
+            fwd_ret = (exit_price - entry_price) / entry_price
+            forward_returns[tk] = {
+                "entry_price": round(entry_price, 2),
+                "exit_price": round(exit_price, 2),
+                "forward_return": round(fwd_ret, 4),
+                "doubled": fwd_ret >= 1.0,
+            }
 
     spy_full = price_data["SPY"]
     if not isinstance(spy_full.index, pd.DatetimeIndex):
