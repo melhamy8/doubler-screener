@@ -288,8 +288,8 @@ with tab4:
                 st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), width="stretch")
 
 with tab5:
-    st.markdown("### 📋 Monthly Top 10 Picks — Full History")
-    st.markdown("<p style='color:#94a3b8;'>Top 10 stocks on the 1st trading day of each month, ranked by composite score.</p>", unsafe_allow_html=True)
+    st.markdown("### 📋 Monthly Top 20 Picks — Full History")
+    st.markdown("<p style='color:#94a3b8;'>Top 20 stocks on the 1st trading day of each month, ranked by composite score.</p>", unsafe_allow_html=True)
     
     import os
     picks_file = None
@@ -301,7 +301,7 @@ with tab5:
     if picks_file:
         mp = pd.read_csv(picks_file)
         # Keep only top 10 per month
-        mp_top10 = mp[mp["Rank"] <= 10].copy()
+        mp_top10 = mp[mp["Rank"] <= 20].copy()
         
         available_months = sorted(mp_top10["Scan_Date"].unique(), reverse=True)
         
@@ -331,6 +331,8 @@ with tab5:
             if "Fwd_6M" in avail: fmt["Fwd_6M"] = "{:+.1f}%"
             if "Alpha_3M" in avail: fmt["Alpha_3M"] = "{:+.1f}%"
             if "Alpha_6M" in avail: fmt["Alpha_6M"] = "{:+.1f}%"
+            if "Fwd_12M" in avail: fmt["Fwd_12M"] = "{:+.1f}%"
+            if "Alpha_12M" in avail: fmt["Alpha_12M"] = "{:+.1f}%"
             
             st.dataframe(show_df.style.format(fmt), height=min(800, 40 + len(show_df) * 35))
             
@@ -345,7 +347,7 @@ with tab5:
             
             # Summary
             st.markdown("---")
-            st.markdown("#### Performance Summary (Top 10 Picks)")
+            st.markdown("#### Performance Summary (Top 20 Picks)")
             v3 = show_data.dropna(subset=["Fwd_3M"])
             v6 = show_data.dropna(subset=["Fwd_6M"])
             if len(v3) > 0:
@@ -360,5 +362,12 @@ with tab5:
                 s6.metric("SPY 6M", f"{v6.SPY_6M.mean():+.1f}%")
                 s7.metric("6M Alpha", f"{v6.Alpha_6M.mean():+.1f}%")
                 s8.metric("6M Win Rate", f"{(v6.Fwd_6M>0).mean()*100:.0f}%")
+            v12 = show_data.dropna(subset=["Fwd_12M"])
+            if len(v12) > 0:
+                s9,s10,s11,s12 = st.columns(4)
+                s9.metric("Avg 12M Return", f"{v12.Fwd_12M.mean():+.1f}%")
+                s10.metric("SPY 12M", f"{v12.SPY_12M.mean():+.1f}%")
+                s11.metric("12M Alpha", f"{v12.Alpha_12M.mean():+.1f}%")
+                s12.metric("12M Win Rate", f"{(v12.Fwd_12M>0).mean()*100:.0f}%")
     else:
         st.info("No monthly picks data found. Generate monthly_picks.csv locally first.")
