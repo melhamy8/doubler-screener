@@ -288,35 +288,77 @@ with tab4:
                 st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), width="stretch")
 
 with tab5:
-    st.markdown(f"#### Full Results — Scanned {dt.datetime.now().strftime('%B %d, %Y')}")
-    st.markdown(f"<p style='color:#94a3b8;'>Regime: {regime_label[0]} | Multiplier: {mult:.2f}x | {len(scored_df):,} stocks scored</p>", unsafe_allow_html=True)
+    st.markdown("### 📋 Monthly Top 10 Picks — Full History")
+    st.markdown("<p style='color:#94a3b8;'>Top 10 stocks on the 1st trading day of each month, ranked by composite score.</p>", unsafe_allow_html=True)
     
-    display_cols = ["ticker","composite_score","price","pct_from_high","trend_decile","rs_avg_decile","vol_decile","quality_decile","ensemble_consensus","sma_stack_aligned","above_200sma","sector","ret_3m","ret_6m","ret_12m","vol_ratio","atr_pct","max_dd_60d"]
-    export_df = scored_df.copy()
-    if "ticker" not in export_df.columns: export_df = export_df.reset_index()
-    available_cols = [c for c in display_cols if c in export_df.columns]
-    export_df = export_df[available_cols]
+    import os
+    picks_file = None
+    for f in ["monthly_picks.csv", "data/monthly_picks.csv", "/mount/src/doubler-screener/monthly_picks.csv"]:
+        if os.path.exists(f):
+            picks_file = f
+            break
     
-    # Add scan date column
-    export_df.insert(0, "scan_date", dt.datetime.now().strftime("%Y-%m-%d"))
-    
-    format_dict = {}
-    if "composite_score" in available_cols: format_dict["composite_score"] = "{:.2f}"
-    if "price" in available_cols: format_dict["price"] = "${:,.2f}"
-    if "pct_from_high" in available_cols: format_dict["pct_from_high"] = "{:.1%}"
-    if "ret_3m" in available_cols: format_dict["ret_3m"] = "{:+.1%}"
-    if "ret_6m" in available_cols: format_dict["ret_6m"] = "{:+.1%}"
-    if "ret_12m" in available_cols: format_dict["ret_12m"] = "{:+.1%}"
-    if "vol_ratio" in available_cols: format_dict["vol_ratio"] = "{:.2f}"
-    if "atr_pct" in available_cols: format_dict["atr_pct"] = "{:.3%}"
-    
-    st.dataframe(export_df.style.format(format_dict), height=600)
-    
-    # CSV download
-    csv_data = export_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="⬇️ Download Full Results (CSV)",
-        data=csv_data,
-        file_name=f"doubler_screener_{dt.datetime.now():%Y%m%d}.csv",
-        mime="text/csv",
-    )
+    if picks_file:
+        mp = pd.read_csv(picks_file)
+        # Keep only top 10 per month
+        mp_top10 = mp[mp["Rank"] <= 10].copy()
+        
+        available_months = sorted(mp_top10["Scan_Date"].unique(), reverse=True)
+        
+        # Month filter
+        view_option = st.radio("View", ["All Months", "Single Month"], horizontal=True, key="results_view")
+        
+        if view_option == "Single Month":
+            sel_month = st.selectbox("Select Month", available_months, key="results_month")
+            show_data = mp_top10[mp_top10["Scan_Date"] == sel_month].copy()
+        else:
+            show_data = mp_top10.copy()
+        
+        if show_data.empty:
+            st.warning("No picks available for the selected period.")
+        else:
+            # Display columns
+            display_cols = ["Scan_Date","Rank","Ticker","Score","Price","Trend","RS","Volume","Quality","Regime"]
+            has_fwd = show_data["Fwd_3M"].notna().any()
+            if has_fwd:
+                display_cols += ["Fwd_3M","Fwd_6M","Alpha_3M","Alpha_6M"]
+            
+            avail = [c for c in display_cols if c in show_data.columns]
+            show_df = show_data[avail].copy()
+            
+            fmt = {"Score":"{:.1f}","Price":"${:,.2f}","RS":"{:.1f}","Volume":"{:.1f}","Quality":"{:.1f}"}
+            if "Fwd_3M" in avail: fmt["Fwd_3M"] = "{:+.1f}%"
+            if "Fwd_6M" in avail: fmt["Fwd_6M"] = "{:+.1f}%"
+            if "Alpha_3M" in avail: fmt["Alpha_3M"] = "{:+.1f}%"
+            if "Alpha_6M" in avail: fmt["Alpha_6M"] = "{:+.1f}%"
+            
+            st.dataframe(show_df.style.format(fmt), height=min(800, 40 + len(show_df) * 35))
+            
+            # Download
+            csv_data = show_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="⬇️ Download Monthly Picks (CSV)",
+                data=csv_data,
+                file_name=f"monthly_top10_picks.csv",
+                mime="text/csv",
+            )
+            
+            # Summary
+            st.markdown("---")
+            st.markdown("#### Performance Summary (Top 10 Picks)")
+            v3 = show_data.dropna(subset=["Fwd_3M"])
+            v6 = show_data.dropna(subset=["Fwd_6M"])
+            if len(v3) > 0:
+                s1,s2,s3,s4 = st.columns(4)
+                s1.metric("Avg 3M Return", f"{v3.Fwd_3M.mean():+.1f}%")
+                s2.metric("SPY 3M", f"{v3.SPY_3M.mean():+.1f}%")
+                s3.metric("3M Alpha", f"{v3.Alpha_3M.mean():+.1f}%")
+                s4.metric("3M Win Rate", f"{(v3.Fwd_3M>0).mean()*100:.0f}%")
+            if len(v6) > 0:
+                s5,s6,s7,s8 = st.columns(4)
+                s5.metric("Avg 6M Return", f"{v6.Fwd_6M.mean():+.1f}%")
+                s6.metric("SPY 6M", f"{v6.SPY_6M.mean():+.1f}%")
+                s7.metric("6M Alpha", f"{v6.Alpha_6M.mean():+.1f}%")
+                s8.metric("6M Win Rate", f"{(v6.Fwd_6M>0).mean()*100:.0f}%")
+    else:
+        st.info("No monthly picks data found. Generate monthly_picks.csv locally first.")
