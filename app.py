@@ -288,11 +288,18 @@ with tab4:
                 st.dataframe(display_picks.style.format({"Score":"{:.1f}","Entry $":"${:,.2f}","Exit $":"${:,.2f}","Return":"{:+.1%}"}), width="stretch")
 
 with tab5:
-    display_cols = ["ticker","composite_score","price","pct_from_high","trend_decile","rs_avg_decile","vol_decile","quality_decile","ensemble_consensus","sma_stack_aligned","above_200sma","overextended","sector","earnings_within_30d","ret_3m","ret_6m","ret_12m","vol_ratio","atr_pct","max_dd_60d"]
+    st.markdown(f"#### Full Results — Scanned {dt.datetime.now().strftime('%B %d, %Y')}")
+    st.markdown(f"<p style='color:#94a3b8;'>Regime: {regime_label[0]} | Multiplier: {mult:.2f}x | {len(scored_df):,} stocks scored</p>", unsafe_allow_html=True)
+    
+    display_cols = ["ticker","composite_score","price","pct_from_high","trend_decile","rs_avg_decile","vol_decile","quality_decile","ensemble_consensus","sma_stack_aligned","above_200sma","sector","ret_3m","ret_6m","ret_12m","vol_ratio","atr_pct","max_dd_60d"]
     export_df = scored_df.copy()
     if "ticker" not in export_df.columns: export_df = export_df.reset_index()
     available_cols = [c for c in display_cols if c in export_df.columns]
     export_df = export_df[available_cols]
+    
+    # Add scan date column
+    export_df.insert(0, "scan_date", dt.datetime.now().strftime("%Y-%m-%d"))
+    
     format_dict = {}
     if "composite_score" in available_cols: format_dict["composite_score"] = "{:.2f}"
     if "price" in available_cols: format_dict["price"] = "${:,.2f}"
@@ -302,8 +309,14 @@ with tab5:
     if "ret_12m" in available_cols: format_dict["ret_12m"] = "{:+.1%}"
     if "vol_ratio" in available_cols: format_dict["vol_ratio"] = "{:.2f}"
     if "atr_pct" in available_cols: format_dict["atr_pct"] = "{:.3%}"
-    st.dataframe(export_df.style.format(format_dict), width="stretch", height=600)
-    csv_buf = io.BytesIO()
-    export_df.to_csv(csv_buf, index=False)
-    csv_buf.seek(0)
-    st.download_button(label="⬇️ Download Full Results (CSV)", data=csv_buf.getvalue(), file_name=f"doubler_screener_v2_{dt.datetime.now():%Y%m%d}.csv", mime="text/csv", width="stretch")
+    
+    st.dataframe(export_df.style.format(format_dict), height=600)
+    
+    # CSV download
+    csv_data = export_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Download Full Results (CSV)",
+        data=csv_data,
+        file_name=f"doubler_screener_{dt.datetime.now():%Y%m%d}.csv",
+        mime="text/csv",
+    )
