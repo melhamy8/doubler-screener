@@ -89,7 +89,7 @@ def initial_download(tickers: list[str]):
     for i in range(0, len(all_tickers), batch_size):
         batch = all_tickers[i:i+batch_size]
         try:
-            data = yf.download(batch, period="24mo", group_by="ticker", auto_adjust=True, threads=True, progress=False)
+            data = yf.download(batch, period="max", group_by="ticker", auto_adjust=True, threads=True, progress=False)
             if data.empty:
                 continue
             if len(batch) == 1:
